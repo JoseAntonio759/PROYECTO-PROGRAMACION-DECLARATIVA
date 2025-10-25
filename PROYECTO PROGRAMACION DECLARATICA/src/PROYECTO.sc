@@ -68,7 +68,8 @@ object TableroClasicoLyS extends TableroJuego:
   )
 
   override def movimientosDesde(p: Posicion): Set[Posicion] =
-    grafo.getOrElse(p, Set.empty)
+    if grafo.contains(p) then grafo(p)
+    else Set.empty
 
   override val posicionInicialLiebre: Posicion = D2M
   override val posicionesInicialesSabuesos: Set[Posicion] = Set(I1A, I2M, I1B)
