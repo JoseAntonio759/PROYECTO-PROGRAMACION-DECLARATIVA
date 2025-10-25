@@ -1,6 +1,5 @@
 import scala.util.Random
 
-
 enum Fila(val valor: Int):
   case A extends Fila(1)
   case M extends Fila(0)
@@ -16,6 +15,21 @@ enum Columna(val valor: Int):
 case class Posicion(col: Columna, fila: Fila):
   def x: Int = col.valor
   def y: Int = fila.valor
+
+enum Jugador:
+  case Liebre
+  case Sabuesos
+
+def sortearTurno(): Jugador =
+  if Random.nextBoolean() then Jugador.Liebre
+  else Jugador.Sabuesos
+
+case class Estado(
+                   liebre: Posicion,
+                   sabuesos: Set[Posicion],
+                   turno: Jugador
+                 ):
+  def ocupadas: Set[Posicion] = sabuesos + liebre
 
 trait TableroJuego:
   def movimientosDesde(p: Posicion): Set[Posicion]
@@ -50,7 +64,7 @@ object TableroClasicoLyS extends TableroJuego:
     D1A -> Set(MA, MM, D1M, D2M),
     D1M -> Set(D1A, MM, D1B, D2M),
     D1B -> Set(D1M, MM, MB, D2M),
-    D2M -> Set(D1A, D1M, D1B),
+    D2M -> Set(D1A, D1M, D1B)
   )
 
   override def movimientosDesde(p: Posicion): Set[Posicion] =
@@ -61,25 +75,7 @@ object TableroClasicoLyS extends TableroJuego:
   override val posicionMetaLiebre: Posicion = I2M
 
   override def pintarTablero(estado: Estado): Unit =
-    None
+    ()  // no hace nada de momento
 
   override def esFinPartida(estado: Estado): Option[Jugador] =
-    None
-
-enum Jugador:
-  case Liebre
-  case Sabuesos
-
-def sortearTurno(): Jugador =
-  if Random.nextBoolean() then Jugador.Liebre
-  else Jugador.Sabuesos
-
-
-case class Estado(
-                   liebre: Posicion,
-                   sabuesos: Set[Posicion],
-                   turno: Jugador
-                 ):
-  def ocupadas: Set[Posicion] =
-    sabuesos + liebre
-
+    None  // no hace nada de momento
