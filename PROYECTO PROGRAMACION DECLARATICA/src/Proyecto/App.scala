@@ -1,5 +1,7 @@
 package Proyecto
 
+import Proyecto.MovimientoLiebre.movimientosPosibles
+
 import scala.util.Random
 
 
@@ -20,8 +22,6 @@ enum Jugador:
   case Liebre
   case Sabuesos
 
-
-
 case class Posicion(col: Columna, fila: Fila):
   def x: Int = col.valor
   def y: Int = fila.valor
@@ -41,7 +41,6 @@ case class Estado(
                  ):
   def ocupadas: Set[Posicion] =
   sabuesos + liebre
-
 
 
 trait TableroJuego:
@@ -83,8 +82,8 @@ object TableroClasicoLyS extends TableroJuego:
   override def movimientosDesde(p: Posicion): Set[Posicion] =
     grafo.getOrElse(p, Set.empty)
 
-  override val posicionInicialLiebre: Posicion = D1M //ESTA CAMBIADO POR PRUEBAS
-  override val posicionesInicialesSabuesos: Set[Posicion] = Set(MA, MM, MB) //ESTA CAMBIADO POR PRUEBAS
+  override val posicionInicialLiebre: Posicion = D2M
+  override val posicionesInicialesSabuesos: Set[Posicion] = Set(I1A, I2M, I1B)
   override val posicionMetaLiebre: Posicion = I2M
 
   private def pintarNodo(p: Posicion, estado: Estado): String =
@@ -107,7 +106,16 @@ object TableroClasicoLyS extends TableroJuego:
 
 
   override def esFinPartida(estado: Estado): Option[Jugador] = {
-    None
+    val xLiebre = estado.liebre.x
+    val xSabuesos = estado.sabuesos.map(_.x)
+
+    if xLiebre < xSabuesos.min then Some(Jugador.Liebre) //victoria liebre
+
+    else
+      val movimientosLiebre = MovimientoLiebre.movimientosPosibles(this, estado) //victoria sabueso
+      if movimientosLiebre.isEmpty then Some(Jugador.Sabuesos)
+      else
+        None
   }
 
 object Estado:
@@ -302,20 +310,5 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
 object App:
   def main(args: Array[String]): Unit =
 
-    val tablero = TableroClasicoLyS
-
-    val estadoInicial = Estado.inicial(tablero)
-
-    println("\nTurno inicial: " + estadoInicial.turno)
-    println("Posición inicial de la liebre: " + estadoInicial.liebre)
-    println("Posiciones iniciales de los sabuesos: " + estadoInicial.sabuesos)
-
-    println("\nCasillas ocupadas: " + estadoInicial.ocupadas)
-
-
-    println("\nMovimientos posibles de la liebre:")
-    MovimientoLiebre.movimientosPosibles(tablero, estadoInicial).foreach(println)
-
-    println("\nMovimientos posibles de los sabuesos:")
-    MovimientoSabueso.movimientosPosibles(tablero, estadoInicial).foreach(println)
+    iniciarJuego()
 
