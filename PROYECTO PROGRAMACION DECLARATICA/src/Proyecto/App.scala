@@ -242,18 +242,19 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
 
   tablero.pintarTablero(estado)
 
-  val movimientos = movimientosPosibles(tablero, estado)
-  val movimientosLista = movimientos.toList
+  val movimientosLiebre = MovimientoLiebre.movimientosPosibles(tablero, estado)
+  val movimientosSabueso = MovimientoSabueso.movimientosPosibles(tablero, estado)
+
+  val movimientosLista = estado.turno match {
+    case Jugador.Liebre => movimientosLiebre.toList
+    case _ => movimientosSabueso.toList
+  }
 
   if (modoIA.contains(estado.turno)) {
     println(s"Turno de ${estado.turno}")
 
     val movimientosEvaluados = movimientosLista.map { movimiento =>
-      val valor = if (estado.turno == Jugador.Liebre) {
-        evaluarMovimientoLiebreIA(tablero, estado, movimiento)
-      } else {
-        evaluarMovimientoSabuesosIA(tablero, estado, movimiento)
-      }
+      val valor = evaluarMovimientoLiebreIA(tablero, estado, movimiento)
       (movimiento, valor)
     }
 
@@ -266,7 +267,10 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
       println(s"${num}: ${mov} -> Evaluado: (${rebasados}, ${distancia})")
     }
 
-    val movimientoElegidoIA = ordenarMovimientos.head._1
+    val movimientoElegidoIA = estado.turno match {
+      case Jugador.Liebre => ordenarMovimientos.head._1
+      case Jugador.Sabuesos => ordenarMovimientos.head._1
+    }
     println(s"Movimiento elegido: ${movimientoElegidoIA}")
 
     val actualizarEstadoIA = ejecutarMovimientos(tablero, estado, movimientoElegidoIA)
@@ -289,6 +293,7 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
     println("Elija movimiento: ")
     val eleccion = scala.io.StdIn.readLine().toInt
     val elegido = movimientosLista(eleccion)
+    
 
     val actualizarEstado = ejecutarMovimientos(tablero, estado, elegido)
 
@@ -302,7 +307,6 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
     }  
   }
 }
-
 
 
 
