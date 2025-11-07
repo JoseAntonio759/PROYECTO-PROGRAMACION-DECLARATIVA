@@ -26,6 +26,10 @@ case class Posicion(col: Columna, fila: Fila):
   def x: Int = col.valor
   def y: Int = fila.valor
 
+  def manhattan(other: Posicion): Int = {
+    Math.abs(x - other.x) + Math.abs(y - other.y)
+  }
+
 def sortearTurno(): Jugador =
   if Random.nextBoolean() then Jugador.Liebre
   else Jugador.Sabuesos
