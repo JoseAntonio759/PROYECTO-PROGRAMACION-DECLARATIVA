@@ -143,7 +143,157 @@ case object MovimientoSabueso extends MovimientoFicha:
       haciaAdelante.map(destino => (sabueso, destino))
     }
 
+def ejecutarMovimientos(tablero: TableroJuego, estado: Estado, movimiento: Posicion): Estado = estado.turno match
+  case Jugador.Liebre => Estado (
+    liebre = movimiento,
+    sabuesos = estado.sabuesos,
+    turno = Jugador.Sabuesos
+  )
 
+  case Jugador.Sabuesos =>
+
+    val SabuesoMovido = estado.sabuesos.filter { sabuesos =>
+      tablero.movimientosDesde(sabuesos).contains(movimiento)
+    }.head
+
+    Estado (
+      liebre = estado.liebre,
+      sabuesos = estado.sabuesos - SabuesoMovido + movimiento,
+      turno = Jugador.Liebre
+    )
+
+def liebreHaRebasado(estado: Estado): Boolean = {
+  !estado.sabuesos.filter(sabuesos => estado.liebre.x <= sabuesos.x).isEmpty
+}
+
+def sabuesosRebasados(estado: Estado, destino: Posicion): Int = {
+  estado.sabuesos.filter(sabuesos => destino.x <= sabuesos.x).size
+}
+
+def distanciaLiebreSabuesos(liebre: Posicion, sabuesos: Set[Posicion]): Int = {
+  sabuesos.map(sabuesos => liebre.manhattan(sabuesos)).sum
+}
+
+def evaluarMovimientoLiebreIA(tablero: TableroJuego, estadoActual: Estado, destino: Posicion): (Int, Int) = {
+  val rebasado = liebreHaRebasado(estadoActual)
+
+  val distancia = distanciaLiebreSabuesos(destino, estadoActual.sabuesos)
+  if (!rebasado) {
+    val Rebasados = sabuesosRebasados(estadoActual, destino)
+    (Rebasados, distancia)
+  } else {
+    val metrica = destino.manhattan(tablero.posicionMetaLiebre)
+    (metrica, distancia)
+  }
+}
+
+def evaluarMovimientoSabuesosIA(tablero: TableroJuego, estadoActual: Estado, destino: Posicion): (Int, Int) = {
+  val liebreHaRebasadoSabuesos = liebreHaRebasado(estadoActual)
+
+  val sabuesoMovido = estadoActual.sabuesos.filter(s => tablero.movimientosDesde(s).contains(destino)).head
+  
+  val estadoPosterior = Estado (
+    liebre = estadoActual.liebre,
+    sabuesos = estadoActual.sabuesos - sabuesoMovido + destino,
+    turno = Jugador.Liebre
+  )
+  val MovimientosLiebre = movimientosPosibles(tablero, estadoPosterior).size
+  if (!liebreHaRebasadoSabuesos) {
+    val distancia = destino.manhattan(estadoActual.liebre)
+
+    (distancia, MovimientosLiebre)
+  } else {
+    val distanciaSabuesosMeta = destino.manhattan(tablero.posicionMetaLiebre)
+
+    (-distanciaSabuesosMeta, MovimientosLiebre)
+  }
+}
+
+def iniciarJuego(): Unit = {
+  val tablero = TableroClasicoLyS
+  val estadoInicial = Estado(
+    liebre = tablero.posicionInicialLiebre,
+    sabuesos = tablero.posicionesInicialesSabuesos,
+    turno = sortearTurno()
+  )
+
+  println("¿Activar el modo IA (Ninguno / Sabuesos / Liebre / Ambos)?: ")
+  val respuesta = scala.io.StdIn.readLine().toLowerCase
+  val modoIA = respuesta match {
+    case "liebre" => Set(Jugador.Liebre)
+    case "sabuesos" => Set(Jugador.Sabuesos)
+    case "ambos" => Set(Jugador.Liebre, Jugador.Sabuesos)
+    case _ => Set()
+  }
+
+  println(s"Comienza el: ${estadoInicial.turno}")
+  bucleJuego(tablero, estadoInicial, modoIA)  // ← Pasar tablero como parámetro
+}
+
+def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jugador = {
+
+  tablero.pintarTablero(estado)
+
+  val movimientos = movimientosPosibles(tablero, estado)
+  val movimientosLista = movimientos.toList
+
+  if (modoIA.contains(estado.turno)) {
+    println(s"Turno de ${estado.turno}")
+
+    val movimientosEvaluados = movimientosLista.map { movimiento =>
+      val valor = if (estado.turno == Jugador.Liebre) {
+        evaluarMovimientoLiebreIA(tablero, estado, movimiento)
+      } else {
+        evaluarMovimientoSabuesosIA(tablero, estado, movimiento)
+      }
+      (movimiento, valor)
+    }
+
+    val ordenarMovimientos = movimientosEvaluados.sortBy {
+      case (mov, (condicion1, condicion2)) => (-condicion1, -condicion2)
+    }
+
+    println("Movimientos posibles evaluados: ")
+    ordenarMovimientos.zipWithIndex.foreach { case ((mov, (rebasados, distancia)), num) =>
+      println(s"${num}: ${mov} -> Evaluado: (${rebasados}, ${distancia})")
+    }
+
+    val movimientoElegidoIA = ordenarMovimientos.head._1
+    println(s"Movimiento elegido: ${movimientoElegidoIA}")
+
+    val actualizarEstadoIA = ejecutarMovimientos(tablero, estado, movimientoElegidoIA)
+
+    tablero.esFinPartida(actualizarEstadoIA) match {
+      case Some(ganador) =>
+        tablero.pintarTablero(actualizarEstadoIA)
+        println(s"Gana el ${ganador}")
+        ganador
+      case None =>
+        bucleJuego(tablero, actualizarEstadoIA, modoIA)
+    }
+  } else {
+    println(s"Turno de ${estado.turno}")
+    println("Movimientos posibles")
+    movimientosLista.zipWithIndex.foreach { case (mov, num) =>
+      println(s"${num}: ${mov}")
+    }
+
+    println("Elija movimiento: ")
+    val eleccion = scala.io.StdIn.readLine().toInt
+    val elegido = movimientosLista(eleccion)
+
+    val actualizarEstado = ejecutarMovimientos(tablero, estado, elegido)
+
+    tablero.esFinPartida(actualizarEstado) match {
+      case Some(ganador) =>
+        tablero.pintarTablero(actualizarEstado)
+        println(s"Gana el ${ganador}")
+        ganador
+      case None =>
+        bucleJuego(tablero, actualizarEstado, modoIA)
+    }  
+  }
+}
 
 
 
