@@ -242,13 +242,12 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
 
   tablero.pintarTablero(estado)
 
-  val movimientosLiebre = MovimientoLiebre.movimientosPosibles(tablero, estado)
-  val movimientosSabueso = MovimientoSabueso.movimientosPosibles(tablero, estado)
-
-  val movimientosLista = estado.turno match {
-    case Jugador.Liebre => movimientosLiebre.toList
-    case _ => movimientosSabueso.toList
+  val movimientosPosibles = estado.turno match {
+    case Jugador.Liebre => MovimientoLiebre.movimientosPosibles(tablero, estado)
+    case _ => MovimientoSabueso.movimientosPosibles(tablero, estado)
   }
+
+  val movimientosLista = movimientosPosibles.toList
 
   if (modoIA.contains(estado.turno)) {
     println(s"Turno de ${estado.turno}")
