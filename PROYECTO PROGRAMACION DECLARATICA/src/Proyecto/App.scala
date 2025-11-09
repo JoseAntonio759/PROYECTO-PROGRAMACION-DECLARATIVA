@@ -5,12 +5,12 @@ import Proyecto.MovimientoLiebre.movimientosPosibles
 import scala.util.Random
 
 
-enum Fila(val valor: Int):
+enum Fila(val valor: Int): //crear enum para filas
   case A extends Fila(1)
   case M extends Fila(0)
   case B extends Fila(-1)
 
-enum Columna(val valor: Int):
+enum Columna(val valor: Int): //crear enum para columnas
   case I2 extends Columna(-2)
   case I1 extends Columna(-1)
   case M extends Columna(0)
@@ -18,11 +18,11 @@ enum Columna(val valor: Int):
   case D2 extends Columna(2)
 
 
-enum Jugador:
+enum Jugador: //enum para distinguir a los jugadores
   case Liebre
   case Sabuesos
 
-case class Posicion(col: Columna, fila: Fila):
+case class Posicion(col: Columna, fila: Fila):  //crear clase para distinguir cada posiciones
   def x: Int = col.valor
   def y: Int = fila.valor
 
@@ -30,11 +30,11 @@ case class Posicion(col: Columna, fila: Fila):
     Math.abs(x - other.x) + Math.abs(y - other.y)
   }
 
-def sortearTurno(): Jugador =
+def sortearTurno(): Jugador = //sortear turno del jugador mediante Random.nextBoolean() que da True o False, y luego asignar a cada jugador
   if Random.nextBoolean() then Jugador.Liebre
   else Jugador.Sabuesos
 
-case class Estado(
+case class Estado( //clase que devuelve el conjunto de posiciones ocupadas en el tablero, al igual que la posicion de la liebre y los sabuesos
                    liebre: Posicion,
                    sabuesos: Set[Posicion],
                    turno: Jugador
@@ -53,7 +53,7 @@ trait TableroJuego:
 
 object TableroClasicoLyS extends TableroJuego:
 
-  val I2M = Posicion(Columna.I2, Fila.M) //creo que seria mejor poner casilla en vez de posicion no se
+  val I2M = Posicion(Columna.I2, Fila.M) //crear el tablero y unir cada casilla como un grafo
   val I1A = Posicion(Columna.I1, Fila.A)
   val I1M = Posicion(Columna.I1, Fila.M)
   val I1B = Posicion(Columna.I1, Fila.B)
@@ -79,14 +79,14 @@ object TableroClasicoLyS extends TableroJuego:
     D2M -> Set(D1A, D1M, D1B),
   )
 
-  override def movimientosDesde(p: Posicion): Set[Posicion] =
+  override def movimientosDesde(p: Posicion): Set[Posicion] = //implementar el metodo del trait, y usar el grafo para obtener los movimientos posibles
     grafo.getOrElse(p, Set.empty)
 
-  override val posicionInicialLiebre: Posicion = D2M
-  override val posicionesInicialesSabuesos: Set[Posicion] = Set(I1A, I2M, I1B)
-  override val posicionMetaLiebre: Posicion = I2M
+  override val posicionInicialLiebre: Posicion = D2M //posicion inicial de la liebre
+  override val posicionesInicialesSabuesos: Set[Posicion] = Set(I1A, I2M, I1B) //posiciones iniciales de los sabuesos
+  override val posicionMetaLiebre: Posicion = I2M //meta de la liebre
 
-  private def pintarNodo(p: Posicion, estado: Estado): String =
+  private def pintarNodo(p: Posicion, estado: Estado): String = //metodo para pintar cada casilla del tablero
     val RESET = "\u001B[0m"
     val ROJO = "\u001B[31m"
     val AZUL = "\u001B[34m"
@@ -96,7 +96,7 @@ object TableroClasicoLyS extends TableroJuego:
     else s"${BLANCO}o${RESET}"
 
 
-  override def pintarTablero(estado: Estado): Unit =
+  override def pintarTablero(estado: Estado): Unit = //metodo para pintar el tablero
     val s = pintarNodo(_, estado)
     println(s" ${s(I1A)}-----${s(MA)}-----${s(D1A)}")
     println(" ╱ | \\ | / | \\")
@@ -105,7 +105,7 @@ object TableroClasicoLyS extends TableroJuego:
     println(s" ${s(I1B)}-----${s(MB)}-----${s(D1B)}")
 
 
-  override def esFinPartida(estado: Estado): Option[Jugador] = {
+  override def esFinPartida(estado: Estado): Option[Jugador] = { //metodo que devuelve el ganador del juego si existe, sino devuelve None
     val xLiebre = estado.liebre.x
     val xSabuesos = estado.sabuesos.map(_.x)
 
@@ -118,7 +118,7 @@ object TableroClasicoLyS extends TableroJuego:
         None
   }
 
-object Estado:
+object Estado: // crea el estado inicial del juego a partir de un tablero dado
   def inicial(tablero: TableroJuego): Estado =
     Estado(
       liebre = tablero.posicionInicialLiebre,
@@ -126,28 +126,24 @@ object Estado:
       turno = sortearTurno()
     )
 
-sealed trait MovimientoFicha:
+sealed trait MovimientoFicha: //implementa el concepto de movimiento de ficha, y da los movimeintos posibles desde un estado concreto
   def movimientosPosibles(tablero: TableroJuego, estado: Estado): Set[Posicion]
 
-case object MovimientoLiebre extends MovimientoFicha:
+case object MovimientoLiebre extends MovimientoFicha: //implementa el movimiento de la liebre que viene de MovimientoFicha
   override def movimientosPosibles(tablero: TableroJuego, estado: Estado): Set[Posicion] =
     val accesibles = tablero.movimientosDesde(estado.liebre)
     accesibles.diff(estado.ocupadas)
 
-case object MovimientoSabueso extends MovimientoFicha:
+case object MovimientoSabueso extends MovimientoFicha: //implementa el movimeinto de los sabuesos
 
-  // el metodo no distingue entre sabuesos no se si sirve sino usar ZipWithIndex y FlatMap
   override def movimientosPosibles(tablero: TableroJuego, estado: Estado): Set[Posicion] =
     movimientosPosiblesPorSabueso(tablero, estado).map(_._2)
 
-  def movimientosPosiblesPorSabueso(tableroactual: TableroJuego, estadoactual: Estado): Set[(Posicion, Posicion)] =
+  def movimientosPosiblesPorSabueso(tableroactual: TableroJuego, estadoactual: Estado): Set[(Posicion, Posicion)] = //creamos el metodo que devuelva dos posiciones, una que sea en la que esta el sabueso y las otras que sean los posibles destinos
     estadoactual.sabuesos.flatMap { sabueso =>
       val accesibles = tableroactual.movimientosDesde(sabueso)
-
       val libres = accesibles.diff(estadoactual.ocupadas)
-
-      val haciaAdelante = libres.filter(destino => destino.x >= sabueso.x)
-
+      val haciaAdelante = libres.filter(destino => destino.x >= sabueso.x) //aqui se limita el movimiento de los sabuesos
       haciaAdelante.map(destino => (sabueso, destino))
     }
 
