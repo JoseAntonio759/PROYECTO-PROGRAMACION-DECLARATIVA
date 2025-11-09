@@ -257,7 +257,7 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
   // Definimos los movimientos posibles para liebre y sabuesos
   val movimientosPosibles = estado.turno match {
     case Jugador.Liebre => MovimientoLiebre.movimientosPosibles(tablero, estado)
-    case _ => MovimientoSabueso.movimientosPosibles(tablero, estado)
+    case Jugador.Sabuesos => MovimientoSabueso.movimientosPosibles(tablero, estado)
   }
 
   // Convertimos los movimientos posibles a lista para poder operar con ellos
