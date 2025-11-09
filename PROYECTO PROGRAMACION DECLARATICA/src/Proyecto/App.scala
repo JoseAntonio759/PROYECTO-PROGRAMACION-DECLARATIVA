@@ -212,7 +212,7 @@ def evaluarMovimientoSabuesosIA(tablero: TableroJuego, estadoActual: Estado, des
     sabuesos = estadoActual.sabuesos - sabuesoMovido + destino,
     turno = Jugador.Liebre
   )
-  val MovimientosLiebre = movimientosPosibles(tablero, estadoPosterior).size
+  val MovimientosLiebre = MovimientoLiebre.movimientosPosibles(tablero, estadoPosterior).size
   // si la liebre no rebasó sabuesos, se devuelve la distancia de los sabuesos a la liebre y los movimientos de la liebre
   if (!liebreHaRebasadoSabuesos) {
     val distancia = destino.manhattan(estadoActual.liebre)
@@ -268,7 +268,10 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
     println(s"Turno de ${estado.turno}")
 
     val movimientosEvaluados = movimientosLista.map { movimiento =>
-      val valor = evaluarMovimientoLiebreIA(tablero, estado, movimiento)
+      val valor = estado.turno match {
+        case Jugador.Liebre => evaluarMovimientoLiebreIA(tablero, estado, movimiento)
+        case Jugador.Sabuesos => evaluarMovimientoSabuesosIA(tablero, estado, movimiento)
+      }
       (movimiento, valor)
     }
 
