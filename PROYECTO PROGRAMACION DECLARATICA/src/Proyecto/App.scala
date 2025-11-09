@@ -147,13 +147,16 @@ case object MovimientoSabueso extends MovimientoFicha: //implementa el movimeint
       haciaAdelante.map(destino => (sabueso, destino))
     }
 
+// Cambia la posición de la liebre y sabuesos dependiendo del movimiento al cual se desplazan
 def ejecutarMovimientos(tablero: TableroJuego, estado: Estado, movimiento: Posicion): Estado = estado.turno match
+  // Actualizamos el estado: La liebre cambia de posición, el estado de los sabuesos no cambia y el turno se mueve a los mismos.
   case Jugador.Liebre => Estado (
     liebre = movimiento,
     sabuesos = estado.sabuesos,
     turno = Jugador.Sabuesos
   )
-
+  // Actualizamos el estado: La liebre se queda igual, los sabuesos no movidos se quedan igual menos el que no que
+  // se quita de su posición inicial para desplazarlo a su movimiento elegido
   case Jugador.Sabuesos =>
 
     val SabuesoMovido = estado.sabuesos.filter { sabuesos =>
@@ -166,53 +169,64 @@ def ejecutarMovimientos(tablero: TableroJuego, estado: Estado, movimiento: Posic
       turno = Jugador.Liebre
     )
 
+// Comprobamos que la liebre rebasa a algún sabueso si el set de los estados de los sabuesos condicionado porque la posición de la liebre
+// en la x es menor o igual que la posición x de los sabuesos
 def liebreHaRebasado(estado: Estado): Boolean = {
   !estado.sabuesos.filter(sabuesos => estado.liebre.x <= sabuesos.x).isEmpty
 }
 
+// Por la condición de la liebre rebasa a los sabuesos, comprobamos el tamaño del set como sabuesos rebasados
 def sabuesosRebasados(estado: Estado, destino: Posicion): Int = {
-  estado.sabuesos.filter(sabuesos => destino.x <= sabuesos.x).size
+  estado.sabuesos.filter(sabuesos => estado.liebre.x <= sabuesos.x).size
 }
 
+// Calculamos la suma de las distancias manhattan de la liebre a los sabuesos
 def distanciaLiebreSabuesos(liebre: Posicion, sabuesos: Set[Posicion]): Int = {
   sabuesos.map(sabuesos => liebre.manhattan(sabuesos)).sum
 }
 
+// Si la liebre la tratamos modoIA, se evalúan sus movimientos con una tupla de dos enteros según la heurística de que
 def evaluarMovimientoLiebreIA(tablero: TableroJuego, estadoActual: Estado, destino: Posicion): (Int, Int) = {
   val rebasado = liebreHaRebasado(estadoActual)
 
   val distancia = distanciaLiebreSabuesos(destino, estadoActual.sabuesos)
+  // si la liebre no rebasa sabuesos devuelve los que se rebasan con ese movimiento y la distancia a estos,
   if (!rebasado) {
     val Rebasados = sabuesosRebasados(estadoActual, destino)
     (Rebasados, distancia)
   } else {
+    // en caso contrario, devuelve la distancia de la liebre a la meta y a los sabuesos, respectivamente
     val metrica = destino.manhattan(tablero.posicionMetaLiebre)
     (metrica, distancia)
   }
 }
 
+// Si los sabuesos los tratamos modoIA, evaluamos sus movimientos con una tupla de 2 enteros con la heurística correspondiente
 def evaluarMovimientoSabuesosIA(tablero: TableroJuego, estadoActual: Estado, destino: Posicion): (Int, Int) = {
   val liebreHaRebasadoSabuesos = liebreHaRebasado(estadoActual)
 
   val sabuesoMovido = estadoActual.sabuesos.filter(s => tablero.movimientosDesde(s).contains(destino)).head
-  
+
   val estadoPosterior = Estado (
     liebre = estadoActual.liebre,
     sabuesos = estadoActual.sabuesos - sabuesoMovido + destino,
     turno = Jugador.Liebre
   )
   val MovimientosLiebre = movimientosPosibles(tablero, estadoPosterior).size
+  // si la liebre no rebasó sabuesos, se devuelve la distancia de los sabuesos a la liebre y los movimientos de la liebre
   if (!liebreHaRebasadoSabuesos) {
     val distancia = destino.manhattan(estadoActual.liebre)
 
     (distancia, MovimientosLiebre)
   } else {
+    // si la liebre rebasó sabuesos, se devuelve la distancia de los sabuesos a la meta (cuanta más mejor) y los movimientos posibles de la liebre, respectivamente
     val distanciaSabuesosMeta = destino.manhattan(tablero.posicionMetaLiebre)
 
     (-distanciaSabuesosMeta, MovimientosLiebre)
   }
 }
 
+// Iniciamos el juego con el tablero y estado iniciales, y pedimos al jugador que responda que jugadores serán dirigidos por IA
 def iniciarJuego(): Unit = {
   val tablero = TableroClasicoLyS
   val estadoInicial = Estado(
@@ -231,20 +245,25 @@ def iniciarJuego(): Unit = {
   }
 
   println(s"Comienza el: ${estadoInicial.turno}")
-  bucleJuego(tablero, estadoInicial, modoIA)  // ← Pasar tablero como parámetro
+  // Se iterará la función bucle juego sobre el tablero, estado e IA hasta que haya un ganador
+  bucleJuego(tablero, estadoInicial, modoIA)
 }
 
+// Definimos el bucle del Juego que termina si la función esFinPartida devuelve un ganador
 def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jugador = {
-
+  // Pintamos el tablero
   tablero.pintarTablero(estado)
 
+  // Definimos los movimientos posibles para liebre y sabuesos
   val movimientosPosibles = estado.turno match {
     case Jugador.Liebre => MovimientoLiebre.movimientosPosibles(tablero, estado)
     case _ => MovimientoSabueso.movimientosPosibles(tablero, estado)
   }
 
+  // Convertimos los movimientos posibles a lista para poder operar con ellos
   val movimientosLista = movimientosPosibles.toList
 
+  // Se evalúan, ordenan decrecientemente y eligen los movimientos correspondientes a cada jugador contenido en modoIA dependiendo de su turno
   if (modoIA.contains(estado.turno)) {
     println(s"Turno de ${estado.turno}")
 
@@ -267,7 +286,7 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
       case Jugador.Sabuesos => ordenarMovimientos.head._1
     }
     println(s"Movimiento elegido: ${movimientoElegidoIA}")
-
+    // Actualizamos el estado del jugador por cada movimiento realizado
     val actualizarEstadoIA = ejecutarMovimientos(tablero, estado, movimientoElegidoIA)
 
     tablero.esFinPartida(actualizarEstadoIA) match {
@@ -279,6 +298,7 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
         bucleJuego(tablero, actualizarEstadoIA, modoIA)
     }
   } else {
+    // En caso de no estar contenido el jugador en la IA, se ordenan y eligen los movimientos a gusto del usuario sin ser evaluados
     println(s"Turno de ${estado.turno}")
     println("Movimientos posibles")
     movimientosLista.zipWithIndex.foreach { case (mov, num) =>
@@ -288,7 +308,7 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
     println("Elija movimiento: ")
     val eleccion = scala.io.StdIn.readLine().toInt
     val elegido = movimientosLista(eleccion)
-    
+
 
     val actualizarEstado = ejecutarMovimientos(tablero, estado, elegido)
 
@@ -299,15 +319,14 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
         ganador
       case None =>
         bucleJuego(tablero, actualizarEstado, modoIA)
-    }  
+    }
   }
 }
 
 
 
-
+// Programa principal
 object App:
   def main(args: Array[String]): Unit =
 
     iniciarJuego()
-
