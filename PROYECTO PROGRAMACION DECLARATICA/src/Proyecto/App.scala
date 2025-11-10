@@ -1,7 +1,5 @@
 package Proyecto
 
-import Proyecto.MovimientoLiebre.movimientosPosibles
-
 import scala.util.Random
 
 
