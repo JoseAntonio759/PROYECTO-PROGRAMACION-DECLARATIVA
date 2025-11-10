@@ -247,6 +247,10 @@ def iniciarJuego(): Unit = {
   println(s"Comienza el: ${estadoInicial.turno}")
   // Se iterará la función bucle juego sobre el tablero, estado e IA hasta que haya un ganador
   bucleJuego(tablero, estadoInicial, modoIA)
+
+  println("¿Se desea realizar otra partida? (si/no): ")
+  val repetir = scala.io.StdIn.readLine().toLowerCase()
+  if (repetir == "si") then iniciarJuego()
 }
 
 // Definimos el bucle del Juego que termina si la función esFinPartida devuelve un ganador
@@ -254,10 +258,10 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
   // Pintamos el tablero
   tablero.pintarTablero(estado)
 
-  // Definimos los movimientos posibles para liebre y sabuesos
+  // Definimos los movimientos posibles para liebre y sabuesos, distinguiendo origen y destino
   val movimientosPosibles = estado.turno match {
-    case Jugador.Liebre => MovimientoLiebre.movimientosPosibles(tablero, estado)
-    case Jugador.Sabuesos => MovimientoSabueso.movimientosPosibles(tablero, estado)
+    case Jugador.Liebre => MovimientoLiebre.movimientosPosibles(tablero, estado).map(destino => (estado.liebre, destino))
+    case Jugador.Sabuesos => MovimientoSabueso.movimientosPosiblesPorSabueso(tablero, estado)
   }
 
   // Convertimos los movimientos posibles a lista para poder operar con ellos
@@ -267,27 +271,29 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
   if (modoIA.contains(estado.turno)) {
     println(s"Turno de ${estado.turno}")
 
-    val movimientosEvaluados = movimientosLista.map { movimiento =>
+    val movimientosEvaluados = movimientosLista.map { case (origen, destino) =>
       val valor = estado.turno match {
-        case Jugador.Liebre => evaluarMovimientoLiebreIA(tablero, estado, movimiento)
-        case Jugador.Sabuesos => evaluarMovimientoSabuesosIA(tablero, estado, movimiento)
+        case Jugador.Liebre =>
+          evaluarMovimientoLiebreIA(tablero, estado, destino)
+
+        case Jugador.Sabuesos =>
+          evaluarMovimientoSabuesosIA(tablero, estado, destino)
       }
-      (movimiento, valor)
+      ((origen, destino), valor)
     }
+
 
     val ordenarMovimientos = movimientosEvaluados.sortBy {
       case (mov, (condicion1, condicion2)) => (-condicion1, -condicion2)
     }
 
     println("Movimientos posibles evaluados: ")
-    ordenarMovimientos.zipWithIndex.foreach { case ((mov, (rebasados, distancia)), num) =>
-      println(s"${num}: ${mov} -> Evaluado: (${rebasados}, ${distancia})")
+    ordenarMovimientos.zipWithIndex.foreach { case (((origen, destino), (rebasados, distancia)), num) =>
+      println(s"${num}: ${estado.turno} va de ${origen} a ${destino} -> Evaluado: (${rebasados}, ${distancia})")
     }
+    // Destino
+    val movimientoElegidoIA = ordenarMovimientos.head._1._2
 
-    val movimientoElegidoIA = estado.turno match {
-      case Jugador.Liebre => ordenarMovimientos.head._1
-      case Jugador.Sabuesos => ordenarMovimientos.head._1
-    }
     println(s"Movimiento elegido: ${movimientoElegidoIA}")
     // Actualizamos el estado del jugador por cada movimiento realizado
     val actualizarEstadoIA = ejecutarMovimientos(tablero, estado, movimientoElegidoIA)
@@ -304,16 +310,16 @@ def bucleJuego(tablero: TableroJuego, estado: Estado, modoIA: Set[Jugador]): Jug
     // En caso de no estar contenido el jugador en la IA, se ordenan y eligen los movimientos a gusto del usuario sin ser evaluados
     println(s"Turno de ${estado.turno}")
     println("Movimientos posibles")
-    movimientosLista.zipWithIndex.foreach { case (mov, num) =>
-      println(s"${num}: ${mov}")
+    movimientosLista.zipWithIndex.foreach { case ((origen, destino), num) =>
+      println(s"${num}: ${estado.turno} va de ${origen} a ${destino}")
     }
 
     println("Elija movimiento: ")
     val eleccion = scala.io.StdIn.readLine().toInt
     val elegido = movimientosLista(eleccion)
 
-
-    val actualizarEstado = ejecutarMovimientos(tablero, estado, elegido)
+    // Destino se elige para ejecutar
+    val actualizarEstado = ejecutarMovimientos(tablero, estado, elegido._2)
 
     tablero.esFinPartida(actualizarEstado) match {
       case Some(ganador) =>
