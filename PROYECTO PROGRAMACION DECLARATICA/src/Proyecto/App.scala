@@ -109,7 +109,7 @@ object TableroClasicoLyS extends TableroJuego:
     val xLiebre = estado.liebre.x
     val xSabuesos = estado.sabuesos.map(_.x)
 
-    if xLiebre < xSabuesos.min then Some(Jugador.Liebre) //victoria liebre
+    if xLiebre <= xSabuesos.min then Some(Jugador.Liebre) //victoria liebre
 
     else
       val movimientosLiebre = MovimientoLiebre.movimientosPosibles(this, estado) //victoria sabueso
